@@ -71,14 +71,13 @@ BUILD_PLATFORMS =
 
 # This builds each command (= the sub-directories of ./cmd) for the target platform(s)
 # defined by BUILD_PLATFORMS.
-build-%: check-go-version-go
+build-%:
 	mkdir -p bin
-	echo '$(BUILD_PLATFORMS)' | tr ';' '\n' | while read -r os arch suffix; do \
-		if ! (set -x; CGO_ENABLED=0 GOOS="$$os" GOARCH="$$arch" go build $(GOFLAGS_VENDOR) -a -ldflags '-X main.version=$(REV) -extldflags "-static"' -o "./bin/$*$$suffix" ./cmd/$*); then \
-			echo "Building $* for GOOS=$$os GOARCH=$$arch failed, see error(s) above."; \
-			exit 1; \
-		fi; \
-	done
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -ldflags '-X main.version=$(REV) -extldflags "-static"' -o ./bin/$*/linux/amd64 ./cmd/$*
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -a -ldflags '-X main.version=$(REV) -extldflags "-static"' -o ./bin/$*/linux/arm64 ./cmd/$*
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm go build -a -ldflags '-X main.version=$(REV) -extldflags "-static"' -o ./bin/$*/linux/arm/v7 ./cmd/$*
+	cp ./bin/$*/linux/arm/v7 ./bin/$*/linux/arm/v6
+	CGO_ENABLED=0 GOOS=windows go build -a -ldflags '-X main.version=$(REV) -extldflags "-static"' -o ./bin/$*.exe ./cmd/$*
 
 container-%: build-%
 	docker build -t $*:latest -f $(shell if [ -e ./cmd/$*/Dockerfile ]; then echo ./cmd/$*/Dockerfile; else echo Dockerfile; fi) --label revision=$(REV) .
